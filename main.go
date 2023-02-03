@@ -85,8 +85,8 @@ func newHashedGroupsClaim(claim []string) hashedGroupsClaim {
 }
 
 func (h hashedGroupsClaim) containsGroups(groups []string) bool {
-	for _, v := range groups {
-		if !h[v] {
+	for _, group := range groups {
+		if !h[group] {
 			return false
 		}
 	}
@@ -96,16 +96,22 @@ func (h hashedGroupsClaim) containsGroups(groups []string) bool {
 func (v RequireGroups) Validate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		token := ctx.Value(TOKEN_CTX_KEY).(jwt.Token)
-		groupsClaim, ok := token.Get("groups")
+		token := ctx.Value(TOKEN_CTX_KEY)
+		realToken, ok := token.(jwt.Token)
+		if !ok {
+			log.Default().Printf("Invalid token type")
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		groupsClaim, ok := realToken.Get("groups")
 		if !ok {
 			log.Default().Println("No groups claim found")
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 		groups := groupsClaim.([]string)
-		hashed := newHashedGroupsClaim(v.Required)
-		if !hashed.containsGroups(groups) {
+		hashed := newHashedGroupsClaim(groups)
+		if !hashed.containsGroups(v.Required) {
 			log.Default().Printf("Missing required groups. has: %v, needs: %v", groups, v.Required)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
