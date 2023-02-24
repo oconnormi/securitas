@@ -33,12 +33,12 @@ func NewRequireToken(jwksUrl string, options ...jwt.ValidateOption) (RequireToke
 	c := jwk.NewCache(ctx)
 	err := c.Register(jwksUrl, jwk.WithMinRefreshInterval(15*time.Minute))
 	if err != nil {
-		log.Default().Fatalf("Unable to register JWKS URL %s", jwksUrl)
+		log.Default().Fatalf("Unable to register JWKS URL %s: %s", jwksUrl, err)
 		return RequireToken{}, nil
 	}
 	_, err = c.Refresh(ctx, jwksUrl)
 	if err != nil {
-		log.Default().Fatalf("Unable to retrieve JWKS from %s", jwksUrl)
+		log.Default().Fatalf("Unable to retrieve JWKS from %s: %s", jwksUrl, err)
 		return RequireToken{}, nil
 	}
 	cached := jwk.NewCachedSet(c, jwksUrl)
